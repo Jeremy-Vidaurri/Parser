@@ -21,60 +21,16 @@ def clear():
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = system('clear')
-#Linked List node
-class node:
-    #Function to initialize node object
-    def __init__(self,data,tokenType):
-        self.data = data #Assign the data
-        self.type = tokenType #Assign the token's type
-        self.next = None #Initialize next as null
-        
-#Linked list will store the tokens as they are received
-class linkedList:
-    #Function to initialize the linked list object
-    def __init__(self):
-        self.head = None
 
-    #Function to add a node to the linked list
-    def addNode(self,newData,tokenType):
-        #Initialize the node with the given data
-        newNode = node(newData,tokenType)
-
-        #If there is no head on the linked list, the new node is the head
-        if self.head is None:
-            self.head = newNode
-            return
-
-        #Traverse the list until a space is found
-        last = self.head
-        while(last.next):
-            last = last.next
-
-        #Make the last node in the list point to the new node
-        last.next = newNode
-
-    #Function to traverse and print the linked list data in order    
-    def printList(self):
-        tList = "("
-        temp = self.head
-        #Traverse the list. Concatenation is more efficient than printing token by token.
-        while(temp):
-            tList = tList + temp.type
-            if(temp.next):
-                tList = tList + ", "
-            temp = temp.next
-        tList = tList + ")"
-        print(tList)
             
-class State(linkedList,parseError):
+class State(parseError):
     #Function to initialize the states. Finals holds all of the accept states. currState describes the state that the DFA is currently at.
     def __init__(self,stringArr):
         self.finals = [2,6,7,8,9,10,12,14,15,16,17,18]
         self.currState = 1 #Initialize to 1 as that is where the DFA begins.
-        self.tokenList = linkedList()
         self.pos = 0
         self.indentation = 0
-        inputToken = ""
+        self.inputToken = ""
         self.stringToken = ""
         self.stringArray = stringArr
         
@@ -203,7 +159,7 @@ class State(linkedList,parseError):
                     tokFlag = 2
                     while(self.pos+1 <= len(self.stringArray)-1 or commentFlag != 1):
                         self.pos +=1
-                        if self.stringArray[self.pos] == "\n":
+                        if self.pos == len(self.stringArray) or self.stringArray[self.pos] == "\n":
                             self.currState = 1
                             commentFlag = 1
                 elif self.stringArray[self.pos] == "*":
@@ -219,6 +175,8 @@ class State(linkedList,parseError):
                             commentFlag = 1
                         elif self.currState == 5:
                             self.currState == 4
+                    if self.currState == 4:
+                        raise parseError
                     self.pos +=1
                 else:
                     tokFlag = -1
@@ -273,7 +231,7 @@ class State(linkedList,parseError):
                     token = token + self.stringArray[self.pos]
 
                 self.pos += 1
-                #print("\t\t" + token + ": " + stateDict[self.currState])
+                #print(token + ": " + stateDict[self.currState])
                 return token,stateDict[self.currState]
                 
             
@@ -295,176 +253,195 @@ class State(linkedList,parseError):
         if tokFlag == -1:
                 print("Error.")
 
-    def match(self,token,inputToken):
-        
-        if inputToken == token and not inputToken =="$$":
+    def match(self,token,):
+          
+        if self.inputToken == token and not self.inputToken =="$$":
             self.indentation+=1
-            print("\t"*self.indentation+"<"+inputToken+">")
+            print("\t"*self.indentation+"<"+self.inputToken+">")
             self.indentation+=1
-            print("\t"*self.indentation + self.stringToken) ##FIX STRING TOKEN
+            print("\t"*self.indentation + self.stringToken) 
             self.indentation-=1
-            print("\t"*self.indentation+"</"+inputToken+">")
+            print("\t"*self.indentation+"</"+self.inputToken+">")
             self.indentation-=1
-        elif inputToken =="$$":
+        elif self.inputToken =="$$":
             return
         else: 
             raise parseError
+        self.stringToken, self.inputToken = self.scan()   
+        
 
 
     def program(self):
-        self.stringToken, inputToken = self.scan() 
-        if inputToken == "id" or inputToken == "read" or inputToken == "write":
-            print("<Program>")
-            self.stmt_list(inputToken)
-            self.stringToken, inputToken = self.scan() 
-            self.match("$$",inputToken)
-            print("</Program>")
-        else:
-            raise parseError()
+         
         
-    def stmt_list(self,inputToken):
-        if inputToken == "id" or inputToken == "read" or inputToken == "write":
+        print("<Program>")
+        self.stringToken, self.inputToken = self.scan() 
+        self.stmt_list()
+         
+        self.match("$$")
+        print("</Program>")
+        
+        
+        
+    def stmt_list(self):
+         
+        if self.inputToken == "id" or self.inputToken == "read" or self.inputToken == "write":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt_list>")
-            self.stmt(inputToken)
-            self.stringToken, inputToken = self.scan() 
-            self.stmt_list(inputToken)
+            self.stmt()
+            
+            self.stmt_list()
             print("\t"*self.indentation + "</stmt_list>")
             self.indentation -= 1
 
-        elif inputToken == "$$":
+        elif self.inputToken == "$$":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt_list>")
             print("\t"*self.indentation + "</stmt_list>")
             self.indentation -= 1
             return
         else:
-            print("stmt_list error " + inputToken)
             raise parseError()
     
 
-    def stmt(self, inputToken):
-        if inputToken == "id":
+    def stmt(self):
+        if self.inputToken == "id":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt>")
-            self.match("id",inputToken)
-            self.stringToken, inputToken = self.scan() 
-            self.match("assign",inputToken)
-            self.expr(inputToken)
+            self.match("id")
+             
+            self.match("assign")
+            self.expr()
             print("\t"*self.indentation + "</stmt>")
             self.indentation -= 1
-        elif inputToken =="read":
+        elif self.inputToken =="read":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt>")
-            self.match("read",inputToken)
-            self.stringToken, inputToken = self.scan() 
-            self.match("id",inputToken)
+            self.match("read")
+             
+            self.match("id")
             print("\t"*self.indentation + "</stmt>")
             self.indentation -= 1
-        elif inputToken == "write":
+        elif self.inputToken == "write":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt>")
-            self.match("write",inputToken)
-            self.expr(inputToken)
+            self.match("write")
+            self.expr()
             print("\t"*self.indentation + "</stmt>")
             self.indentation -= 1
         else:
             raise parseError()
+        
 
-    def expr(self,inputToken):
-        self.stringToken, inputToken = self.scan() 
-        if inputToken == "id" or inputToken == "number" or inputToken=="lparen":
+    def expr(self):
+        
+         
+        if self.inputToken == "id" or self.inputToken == "number" or self.inputToken=="lparen":
             self.indentation +=1
             print("\t"*self.indentation +"<expr>")
-            self.term(inputToken)
-            self.term_tail(inputToken)
+            self.term()
+            
+            self.term_tail()
+
             print("\t"*self.indentation +"</expr>")
             self.indentation -=1
         else:
             raise parseError()
 
-    def term_tail(self,inputToken):
-        self.stringToken, inputToken = self.scan()
+    def term_tail(self):
         self.indentation+=1
         print("\t"*self.indentation +"<term_tail>")
-        if inputToken =="plus" or inputToken =="minus":
+        # 
+        if self.inputToken =="plus" or self.inputToken =="minus":
             
-            self.add_op(inputToken)
-            self.term(inputToken)
-            self.term_tail(inputToken)
+            self.add_op()
+             
+            self.term()
+    
+
+            self.term_tail()
             print("\t"*self.indentation +"</term_tail>")
             self.indentation-=1
-        elif inputToken =="rparen" or inputToken =="id" or inputToken =="read" or inputToken =="write" or inputToken=="$$":
+        elif self.inputToken =="rparen" or self.inputToken =="id" or self.inputToken =="read" or self.inputToken =="write" or self.inputToken=="$$":
             print("\t"*self.indentation +"</term_tail>")
             self.indentation-=1    
             return
         else:
-            raise parseError()
+            raise parseError
 
-    def term(self,inputToken):        
-        if inputToken == "id" or inputToken == "number" or inputToken == "lparen":
+    def term(self):       
+        if self.inputToken == "id" or self.inputToken == "number" or self.inputToken == "lparen":
             self.indentation+=1
             print("\t"*self.indentation +"<term>")
-            self.factor(inputToken)
-            self.factor_tail(inputToken)
+            self.factor()
+            
+            self.factor_tail()
             print("\t"*self.indentation +"</term>")
             self.indentation-=1
 
         else:
-            raise parseError(inputToken)
+            raise parseError
 
-    def factor_tail(self,inputToken):
-        self.stringToken, inputToken = self.scan()
+    def factor_tail(self):
+        
         self.indentation +=1
         print("\t"*self.indentation +"<factor_tail>")
-        if inputToken == "multiply" or inputToken == "div":
-            self.mult_op(inputToken)
-            self.factor(inputToken)
-            self.factor_tail(inputToken)
+        if self.inputToken == "times" or self.inputToken == "div":
+            self.mult_op()
+             
+            self.factor()
+            self.factor_tail()
             print("\t"*self.indentation +"</factor_tail>")
             self.indentation-=1
-        elif inputToken == "plus" or inputToken == "minus" or inputToken == "rparen" or inputToken == "id" or inputToken == "read" or inputToken == "write" or inputToken == "$$":
+        elif self.inputToken == "plus" or self.inputToken == "minus" or self.inputToken == "rparen" or self.inputToken == "id" or self.inputToken == "read" or self.inputToken == "write" or self.inputToken == "$$":
             print("\t"*self.indentation +"</factor_tail>")
             self.indentation-=1
             return
         else:
-            raise parseError(inputToken)
+            raise parseError
 
-    def factor(self,inputToken):
+    def factor(self):
         self.indentation+=1
         print("\t"*self.indentation +"<factor>")
-        if inputToken == "id":
-            self.match("id",inputToken)
-        elif inputToken == "number":
-            self.match("number",inputToken)
-        elif inputToken == "lparen":
-            self.match("lparen",inputToken)
-            self.expr(inputToken)
-            self.match("rparen",inputToken)
+        if self.inputToken == "id":
+            self.match("id")
+        elif self.inputToken == "number":
+            self.match("number")
+        elif self.inputToken == "lparen":
+            self.match("lparen")
+            self.expr()
+            self.match("rparen")
         else:
-            raise parseError()
+            raise parseError
         print("\t"*self.indentation +"</factor>")
         self.indentation-=1
 
-    def add_op(self,inputToken):
-        print("add_op")
-        if inputToken == "plus":
-            self.match("plus",inputToken)
-        elif inputToken == "minus":
-            self.match("minus",inputToken)
+    def add_op(self):        
+        self.indentation+=1
+        print("\t"*self.indentation+"<add_op>")
+        if self.inputToken == "plus":
+            self.match("plus")
+        elif self.inputToken == "minus":
+            self.match("minus")
         else:
-            raise parseError()
-            
-    def mult_op(self,inputToken):
-        print("mult_op")
-        if inputToken == "multiply":
-            self.match("multiply",inputToken)
-        elif inputToken == "div":
-            self.match("div",inputToken)
-        else:
-            raise parseError()
+            raise parseError
+        print("\t"*self.indentation+"</add_op>")  
+        self.indentation-=1
 
-    def parse(self,):  
+    def mult_op(self):
+        self.indentation+=1
+        print("\t"*self.indentation+"<mult_op>")
+        if self.inputToken == "times":
+            self.match("times")
+        elif self.inputToken == "div":
+            self.match("div")
+        else:
+            raise parseError
+        print("\t"*self.indentation+"</mult_op>")  
+        self.indentation-=1
+
+
+    def parse(self):  
         while (self.pos < len(self.stringArray) ):
             self.program()
 

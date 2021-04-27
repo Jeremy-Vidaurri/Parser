@@ -1,1 +1,5 @@
-A+B
+read x
+x:= a + b
+/*comment*/
+write (a+b) * 5
+/*ajudhfisj*/
