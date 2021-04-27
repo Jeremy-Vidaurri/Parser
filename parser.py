@@ -2,18 +2,30 @@
 ## Jeremy Vidaurri & Ryan Hernandez
 ## CS 3361
 
+##Parsing
+##  Done through using the following rules:
+##      <program> → <stmt_list> $$
+##      <stmt list> → <stmt> <stmt_list> | epsilon
+##      <stmt> → id assign <expr> | read id | write <expr>
+##      <expr> → <term> <term_tail>
+##      <term tail> → <add_op> <term> <term_tail> | epsilon
+##      <term> → <factor> <factor_tail>
+##      <factor_tail> → <mult_op> <factor> <factor_tail> | epsilon
+##      <factor> → lparen <expr> rparen | id | number
+##      <add_op> → plus | minus
+##      <mult_op> → times | div
+
 
 
 import sys
 from os import system,name
 
-
+#Custom error if there are any issues while parsing.
 class parseError(Exception):
     pass
 
-
+#Clear the console window. Used for error handling
 def clear():
-  
     # for windows
     if name == 'nt':
         _ = system('cls')
@@ -34,8 +46,6 @@ class State(parseError):
         self.stringToken = ""
         self.stringArray = stringArr
         
-
-
     #Function to check if the token is done
     def finalState(self,):
         #Check each final state and see if it matches the current state
@@ -253,8 +263,9 @@ class State(parseError):
         if tokFlag == -1:
                 print("Error.")
 
+    #Function for making sure tokens match what they are supposed to be
     def match(self,token,):
-          
+        #If the current token matches and is not $$, print out the type of token with the token indented one tab out
         if self.inputToken == token and not self.inputToken =="$$":
             self.indentation+=1
             print("\t"*self.indentation+"<"+self.inputToken+">")
@@ -263,37 +274,38 @@ class State(parseError):
             self.indentation-=1
             print("\t"*self.indentation+"</"+self.inputToken+">")
             self.indentation-=1
+        #If the current token is $$, return
         elif self.inputToken =="$$":
             return
         else: 
             raise parseError
+        #Update the current token
         self.stringToken, self.inputToken = self.scan()   
         
 
-
+    #Initialization for parsing function
     def program(self):
-         
-        
         print("<Program>")
+        #Scan the first token and take it stmt_list
         self.stringToken, self.inputToken = self.scan() 
         self.stmt_list()
-         
+        #The program will only reach this at the end of file. If the token matches, print the closing program.
         self.match("$$")
         print("</Program>")
         
-        
-        
+    #stmt_list -> <stmt><stmt_list> | epsilon
     def stmt_list(self):
-         
+        #if the token is id, read, or write, go through stmt stmt_list
         if self.inputToken == "id" or self.inputToken == "read" or self.inputToken == "write":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt_list>")
+
             self.stmt()
-            
             self.stmt_list()
+
             print("\t"*self.indentation + "</stmt_list>")
             self.indentation -= 1
-
+        #If the token is $$, return to the previous function
         elif self.inputToken == "$$":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt_list>")
@@ -304,7 +316,9 @@ class State(parseError):
             raise parseError()
     
 
+    #stmt -> id assign <expr> | read id | write <expr>
     def stmt(self):
+        #If the token is id, match it and then match assign and then go through an expression
         if self.inputToken == "id":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt>")
@@ -314,33 +328,38 @@ class State(parseError):
             self.expr()
             print("\t"*self.indentation + "</stmt>")
             self.indentation -= 1
+        #If the token is read, it will match read and then match the id following
         elif self.inputToken =="read":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt>")
+
             self.match("read")
-             
             self.match("id")
+
             print("\t"*self.indentation + "</stmt>")
             self.indentation -= 1
+        #If the token is write, it will match write and then check for an expression.
         elif self.inputToken == "write":
             self.indentation += 1
             print("\t"*self.indentation + "<stmt>")
+
             self.match("write")
             self.expr()
+
             print("\t"*self.indentation + "</stmt>")
             self.indentation -= 1
         else:
             raise parseError()
         
 
+    #expr -> <term><term_tail>
     def expr(self):
-        
-         
+        #If the token is id, number or lparen, it will go through term term_tail
         if self.inputToken == "id" or self.inputToken == "number" or self.inputToken=="lparen":
             self.indentation +=1
             print("\t"*self.indentation +"<expr>")
+
             self.term()
-            
             self.term_tail()
 
             print("\t"*self.indentation +"</expr>")
@@ -348,20 +367,21 @@ class State(parseError):
         else:
             raise parseError()
 
+
+    #term_tail -> <add op> <term> <term_tail> | epsilon
     def term_tail(self):
         self.indentation+=1
         print("\t"*self.indentation +"<term_tail>")
-        # 
+        #If the token is plus or minus, it will go through add_op term term_tail
         if self.inputToken =="plus" or self.inputToken =="minus":
-            
             self.add_op()
-             
             self.term()
-    
-
             self.term_tail()
+
             print("\t"*self.indentation +"</term_tail>")
             self.indentation-=1
+
+        #If the token is rparen, id, tead, write, or $$, it is considered epsilon and returns to the previous function
         elif self.inputToken =="rparen" or self.inputToken =="id" or self.inputToken =="read" or self.inputToken =="write" or self.inputToken=="$$":
             print("\t"*self.indentation +"</term_tail>")
             self.indentation-=1    
@@ -369,30 +389,41 @@ class State(parseError):
         else:
             raise parseError
 
-    def term(self):       
+
+    #term → <factor> <factor_tail>
+    def term(self):
+
+        #Check that the input is id number or lparen. Then go through factor factor_tail
         if self.inputToken == "id" or self.inputToken == "number" or self.inputToken == "lparen":
             self.indentation+=1
             print("\t"*self.indentation +"<term>")
+
             self.factor()
-            
             self.factor_tail()
+
             print("\t"*self.indentation +"</term>")
             self.indentation-=1
 
         else:
             raise parseError
 
+
+    #factor_tail → <mult_op> <factor> <factor_tail> | epsilon
     def factor_tail(self):
         
         self.indentation +=1
         print("\t"*self.indentation +"<factor_tail>")
+
+        #If the token is times or div, it will go through mult_op factor factor_tail
         if self.inputToken == "times" or self.inputToken == "div":
             self.mult_op()
-             
             self.factor()
             self.factor_tail()
+
             print("\t"*self.indentation +"</factor_tail>")
             self.indentation-=1
+
+        #If the token is plus, minus, rparen, id, read, write, or $$, simply return to the previous function    
         elif self.inputToken == "plus" or self.inputToken == "minus" or self.inputToken == "rparen" or self.inputToken == "id" or self.inputToken == "read" or self.inputToken == "write" or self.inputToken == "$$":
             print("\t"*self.indentation +"</factor_tail>")
             self.indentation-=1
@@ -400,9 +431,14 @@ class State(parseError):
         else:
             raise parseError
 
+
+    #factor -> lparen <expr> rparen | id | number
     def factor(self):
         self.indentation+=1
         print("\t"*self.indentation +"<factor>")
+
+        #Depending on the token, match it so it may be printed.
+        #lparen needs an expr in between, so it much have an expression and then a rparen to be printed
         if self.inputToken == "id":
             self.match("id")
         elif self.inputToken == "number":
@@ -413,40 +449,51 @@ class State(parseError):
             self.match("rparen")
         else:
             raise parseError
+
         print("\t"*self.indentation +"</factor>")
         self.indentation-=1
 
+
+    #add_op -> plus | minus
     def add_op(self):        
         self.indentation+=1
         print("\t"*self.indentation+"<add_op>")
+
+        #Depending on the token, match it so it may be printed
         if self.inputToken == "plus":
             self.match("plus")
         elif self.inputToken == "minus":
             self.match("minus")
         else:
             raise parseError
+
         print("\t"*self.indentation+"</add_op>")  
         self.indentation-=1
 
+
+    #mult_op -> times | div
     def mult_op(self):
         self.indentation+=1
         print("\t"*self.indentation+"<mult_op>")
+
+        #Depending on the token, match it so it may be printed
         if self.inputToken == "times":
             self.match("times")
         elif self.inputToken == "div":
             self.match("div")
         else:
             raise parseError
+
         print("\t"*self.indentation+"</mult_op>")  
         self.indentation-=1
+    
 
-
+    ##Function that begins the parsing function
     def parse(self):  
-        while (self.pos < len(self.stringArray) ):
-            self.program()
+        self.program()
+
 
 class File():
-
     #Function to initialize the file for reading
     def __init__(self):
         self.file=open(sys.argv[1],"r")
@@ -463,11 +510,12 @@ class File():
 def main():
     userfile = File() #Grab file from user
     stringArr = userfile.filetoArray() #Store each character in a single array
-    token = State(stringArr) #State used to begin the scan process
-    token.parse() #Scan the file using the array from the file.
+    token = State(stringArr) #State used to begin the parsing process
+    token.parse() #Parse the file using the array from the file.
 
 
 #If the provided file does not exist, error out.
+#If a parseError is raised, clear the console and print "Error"
 try:
     main()
 except FileNotFoundError:
