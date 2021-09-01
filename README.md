@@ -14,7 +14,7 @@ Utilizes the following rules:
 *  \<mult_op> -> times | div
 
 ## Running the Parser
-To run the parser, place the parser.py in the same folder as the input text file. In Powershell, use the command `Python parser.py input.txt` where `input.txt` is the name of the input text file.
+To run the parser, place the parser.py in the same folder as the input text file. Then in command line, use the command `Python parser.py input.txt` where `input.txt` is the name of the input text file.
 
 
 ## Contributions
