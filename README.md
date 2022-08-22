@@ -19,4 +19,4 @@ To run the parser, place the parser.py in the same folder as the input text file
 
 ## Contributions
 * [Jeremy Vidaurri](https://github.com/Jeremy-Vidaurri)
-* Ryan Villarreal
+* Ryan Hernandez
